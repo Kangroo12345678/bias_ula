@@ -1,7 +1,11 @@
 # LangevinBiasExperiments.jl
 #
-# Description:
-# A suite of 4 experiments to provide evidence for the delocalization of bias phenomenon. The 4 experiments we have supporting theory for.
+# Verification script for the delocalization of bias phenomenon in ULA samplers.
+# We tested 4 situations: 
+# - Gaussian Distribution with Known Mean and Variance; Experimental results from ULA Chain and Theoretical Bias from lyapunov solver
+# - Product Measure with Known Potential; Results from ULA Chain and MALA Chain
+# - Sparse Graphical Model (Tridiagonal) with Known Potential; Results from ULA Chain and MALA Chain
+# - Rotated Product Measure (Counter-Example) with Known Potential; Results from ULA Chain and MALA Chain
 
 # Author: Michael Kang
 
@@ -15,17 +19,18 @@ using StatsBase
 using JLD2
 using Printf
 
-# You will find the results directory in the same directory level as this script.
+# After the script, you will find the results directory in the same directory level as this script, including plots and raw data.
 if !isdir("results")
     mkdir("results")
 end
+
 
 # Closed-book formula for computing the W₁ distance between two samples; numerical version
 """
 Arguments: samples1, samples2 - vectors of samples from two distributions; they do not need to be of the same length.
 """
 function compute_w1_dist(samples1::Vector, samples2::Vector)
-    # Filter out non-finite values to prevent errors and invalid results
+    # Filter out non-finite values to prevent invalid results
     s1_finite = filter(isfinite, samples1)
     s2_finite = filter(isfinite, samples2)
     if isempty(s1_finite) || isempty(s2_finite) return Inf end
@@ -83,11 +88,11 @@ end
 # Hyperparameters for the chain
 const N_SAMPLES = 100000
 const BURN_IN = 20000
-const H = 0.003
-const DIMS = [8, 16, 32, 64, 128, 256, 512, 1024]
-const N_REPEATS = 5
+const H = 0.005 # Step size for ULA and MALA, under 0.005 for appropriate accecptance rate
+const DIMS = [8, 16, 32, 64, 128, 256, 512, 1024] # dimensions of probability distributions
+const N_REPEATS = 5 # Repeat times for chains
 
-# --- Experiment 1: Gaussian Case ---
+# --- Experiment 1: Gaussian Case(the stationary distribution is a multi-variate Gaussian) ---
 function experiment_gaussian(d)
     println("Running Gaussian experiment for d=$d...")
     A = randn(d, d) / sqrt(d)
@@ -95,25 +100,27 @@ function experiment_gaussian(d)
     P_raw = A' * A # Ensure positive semi-definiteness
     precision_matrix = (P_raw + P_raw') / 2 + alpha * I # To ensure alpha-strong convexity and symmetry
     C_raw = inv(precision_matrix)
-    covariance_matrix = (C_raw + C_raw') / 2 # To handle numerical nuances
+    covariance_matrix = (C_raw + C_raw') / 2 # To handle numerical nuances, ensure symmetry
     grad_V(x) = precision_matrix * x
-    A_lyap = I - H * precision_matrix
+    # solving Lyapunov equation, for Covariance Matrix: Sigma_h <-- this part uses the theory derived from the closed form of Langevin dynamics for Gaussian, thanks to the drift linear to x
+    A_lyap = I - H * precision_matrix 
     C_lyap = 2 * H * Matrix(I, d, d)
     Sigma_h = copy(C_lyap)
-    for _ in 1:200
+    for _ in 1:500
         Sigma_h_new = A_lyap * Sigma_h * A_lyap' + C_lyap
         if norm(Sigma_h_new - Sigma_h) < 1e-10 * norm(Sigma_h); break; end
         Sigma_h = Sigma_h_new
     end
     Sigma_h = (Sigma_h + Sigma_h') / 2
-    theoretical_bias = sqrt(2/pi) * abs(sqrt(covariance_matrix[1, 1]) - sqrt(Sigma_h[1, 1]))
+    theoretical_bias = sqrt(2/pi) * abs(sqrt(covariance_matrix[1, 1]) - sqrt(Sigma_h[1, 1])) # mean is the same, bias only relevant to Sigma_h and Sigma
+    
     ula_samples = run_ula(grad_V, zeros(d), N_SAMPLES, H)
     true_samples = rand(MvNormal(covariance_matrix), N_SAMPLES) # Because we know the true dist, no need for MALA
     numerical_bias = compute_w1_dist(ula_samples[1, :], true_samples[1, :])
     return numerical_bias, theoretical_bias
 end
 
-# --- Experiment 2: Product Measure Case ---
+# --- Experiment 2: Product Measure Case, marginals independently coupled ---
 function experiment_product(d)
     println("Running Product Measure experiment for d=$d...")
     V(x) = sum(0.5 .* x.^2 + 0.25 .* x.^4)
@@ -124,7 +131,7 @@ function experiment_product(d)
     return bias, acc_rate
 end
 
-# --- Experiment 3: Sparse Graphical Model (Tridiagonal) ---
+# --- Experiment 3: Sparse Graphical Model (Tridiagonal), potential of one marginal only depend on its neighbor dimensions, very strictly local ---
 function experiment_sparse(d)
     println("Running Sparse (Tridiagonal) experiment for d=$d...")
     V(x) = 0.5 * sum(x.^2) + (d > 1 ? 0.25 * sum((x[1:d-1] .- x[2:d]).^2) : 0.0)
@@ -140,14 +147,14 @@ function experiment_sparse(d)
 end
 
 # --- Experiment 4: Rotated Product Measure (Counter-Example) ---
-const K_GAMMA = 2.0
-const THETA_GAMMA = 1.0
+const K_GAMMA = 2.0 # shape parameter
+const THETA_GAMMA = 1.0 # scale parameter
 const MEAN_GAMMA = K_GAMMA * THETA_GAMMA
 const BOUNDARY = -MEAN_GAMMA
 V_1d(z::Real) = z + MEAN_GAMMA > 0 ? (z + MEAN_GAMMA) / THETA_GAMMA - (K_GAMMA - 1) * log(z + MEAN_GAMMA) : Inf
 grad_V_1d(z::Real) = 1.0 / THETA_GAMMA - (K_GAMMA - 1) / (z + MEAN_GAMMA)
 
-# ULA for Rotated Potential (FIXED with stability check)
+# ULA for Rotated Potential, after fixing numerical nuances, inf values  
 function run_ula_rotated(grad_V_1d_func::Function, Q::AbstractMatrix, Qt::AbstractMatrix, x0::Vector, n_samples::Int, h::Float64)
     d = length(x0)
     y = copy(x0)
@@ -163,7 +170,7 @@ function run_ula_rotated(grad_V_1d_func::Function, Q::AbstractMatrix, Qt::Abstra
         noise = randn(d)
         y_proposal = y_current - h * grad_rotated + sqrt(2*h) * noise
 
-        # Stability Check: Ensure the proposal is in the valid domain
+        # Stability Check
         x_proposal_check = Qt * y_proposal
         if any(z -> z <= BOUNDARY, x_proposal_check)
             # If step is invalid, reject it (i.e., do nothing, y remains y_current)
@@ -223,7 +230,7 @@ end
 
 function experiment_rotated(d)
     println("Running Rotated experiment for d=$d...")
-    Random.seed!(d)
+    Random.seed!(d) # dimensions are different, making them, actually, good random seeds
     x0 = zeros(d)
     Q = get_rotation_matrix(d)
     ula_samples_rot = run_ula_rotated(grad_V_1d, Q, Q', x0, N_SAMPLES, H)
@@ -233,9 +240,7 @@ function experiment_rotated(d)
     return bias, acc_rate
 end
 
-# ##############################################################################
-# 3. MAIN EXECUTION SCRIPT
-# ##############################################################################
+
 function main()
     results = Dict()
     println("\n" * "="^60); println("CALIBRATING 1D BIAS (δ) FOR ROTATED EXPERIMENT REFERENCE LINE"); println("="^60)
@@ -243,6 +248,7 @@ function main()
     ula_1d = run_ula_1d_reflected(grad_V_1d, 0.0, cal_samples, H)
     mala_1d, _ = run_mala_product(V_1d, grad_V_1d, [0.0], cal_samples, H)
     delta_h = mean(ula_1d) - mean(mala_1d)
+    # Checking mean bias > 0, so the assumption is valid
     @printf "Calibration complete. Estimated 1D mean bias |δ| = %.6f\n" abs(delta_h)
 
     for (name, func) in [("gaussian", experiment_gaussian), ("product", experiment_product), ("sparse", experiment_sparse), ("rotated", experiment_rotated)]
