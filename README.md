@@ -3,13 +3,13 @@
 [![Julia 1.6+](https://img.shields.io/badge/Julia-1.6%2B-blue.svg)](https://julialang.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This repository contains the code for an experimental investigation into the "delocalization of bias" hypothesis for high-dimensional models sampled with Unadjusted Langevin Algorithm (ULA).
+This repository contains the code for an experimental investigation into the "delocalization of bias" phenomenon for high-dimensional probability distributions sampled with Unadjusted Langevin Algorithm (ULA).
 
-### The Hypothesis
+### The Key Idea
 
-> The core hypothesis posits that for models with sparse interactions (i.e., a sparse Hessian of the drift term) and a Gaussian stationary distribution, the sampling bias on any single marginal is nearly independent of the system's total dimension.
+> For ULA with sparse interactions between marginals (i.e., a sparse Hessian of the drift term, a sparse graphical model) and a Gaussian stationary distribution, the sampling bias on any single marginal is nearly(or completely) independent of the system's total dimension.
 
-## Prerequisites
+## Before you run the project
 
 ### 1. Prerequisites
 
@@ -34,7 +34,7 @@ You can run either of the two main experiment scripts from your terminal. Result
   julia LangevinBiasExperiments_a.jl
   ```
 
-- **To test relaxations of the hypothesis conditions:**
+- **To test relaxations of the delocalization conditions:**
   ```bash
   julia LangevinBiasExperiments_x.jl
   ```
@@ -62,6 +62,6 @@ The repository is organized as follows:
 
 Upon successful execution, the `results/` directory will contain:
 
-- **`all_experiments_plot.png`**: Visualizes the core hypothesis by plotting the marginal sampling bias against the model dimension.
-- **`acceptance_rates_plot.png`**: Shows the Metropolis-Adjusted Langevin Algorithm (MALA) acceptance rates, useful for diagnostics.
-- **`raw_data.jld2`**: A JLD2 file containing the complete, unprocessed data from all experimental runs for further analysis.
+- **`all_experiments_plot.png`**: Marginal sampling bias against the model dimension.
+- **`acceptance_rates_plot.png`**: Metropolis-Adjusted Langevin Algorithm (MALA) acceptance rates
+- **`raw_data.jld2`**: Unprocessed data from all experimental runs
