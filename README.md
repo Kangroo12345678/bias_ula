@@ -1,29 +1,67 @@
 # Experimental Investigation of Bias Delocalization in Unadjusted Langevin Sampling
 
-The experiments are designed to test the "delocalization of bias" hypothesis, which posits that for models with sparse interactions(Hessian of drift in the Langevin equation), Gaussian stationary distribution, the bias on any single marginal(and finite coupling of marginals) is nearly/completely independent of the total dimension.
+[![Julia 1.6+](https://img.shields.io/badge/Julia-1.6%2B-blue.svg)](https://julialang.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Structure
+This repository contains the code for an experimental investigation into the "delocalization of bias" hypothesis for high-dimensional models sampled with Unadjusted Langevin Algorithm (ULA).
 
-- `LangevinBiasExperiments_a.jl`: Script running 4 scenarios for which, we have developed theory for. Validation Experiment.
-- `LangevinBiasExperiments_x.jl`: Experimenting possible relaxation of delocalization conditions.
-- `README.md`: You are here!
-- `results/`: A directory where the output plots and raw experiment data will be saved.
-  - `all_experiments_plot.png`: Plot of marginal bias vs. dimension.
-  - `acceptance_rates_plot.png`: Plot of MALA acceptance rates vs. dimension.
-  - `raw_data.jld2`: A binary file containing all raw data from the experiments.
+### The Hypothesis
 
-## Prerequisites: before you run this project
+> The core hypothesis posits that for models with sparse interactions (i.e., a sparse Hessian of the drift term) and a Gaussian stationary distribution, the sampling bias on any single marginal is nearly independent of the system's total dimension.
 
-- **Julia:** Version 1.6 or later.
-- **Julia Packages:** The following packages are required:
-    ```julia
-    import Pkg
-    Pkg.add(["Distributions", "Plots", "ProgressMeter", "StatsBase", "JLD2", "LinearAlgebra", "Random", "Printf"])
-    ```
+## Prerequisites
 
-## Running the project
+### 1. Prerequisites
 
-Just run the script you wish to run, after a while, you could see the results in the result folder.
+- **Julia:** Ensure you have Julia v1.6 or a later version installed.
+- **Julia Packages:** Install the required packages by running the following command in a Julia REPL:
 
-```bash
-julia LangevinBiasExperiments_a.jl
+  ```julia
+  using Pkg
+  Pkg.add([
+      "Distributions", "Plots", "ProgressMeter", 
+      "StatsBase", "JLD2", "LinearAlgebra", 
+      "Random", "Printf"
+  ])
+  ```
+
+### 2. Running the Experiments
+
+You can run either of the two main experiment scripts from your terminal. Results will be automatically saved to the `results/` directory.
+
+- **To validate the core theory:**
+  ```bash
+  julia LangevinBiasExperiments_a.jl
+  ```
+
+- **To test relaxations of the hypothesis conditions:**
+  ```bash
+  julia LangevinBiasExperiments_x.jl
+  ```
+
+---
+
+## Project Structure
+
+The repository is organized as follows:
+
+```
+.
+├── LangevinBiasExperiments_a.jl  # Main script for theory validation experiments.
+├── LangevinBiasExperiments_x.jl  # Script for exploring relaxed conditions.
+├── README.md                     # You are here!
+└── results/
+    ├── all_experiments_plot.png  # Output: Plot of marginal bias vs. dimension.
+    ├── acceptance_rates_plot.png # Output: Plot of MALA acceptance rates vs. dimension.
+    └── raw_data.jld2             # Output: Binary file with all raw experiment data.
+```
+
+---
+
+## Results
+
+Upon successful execution, the `results/` directory will contain:
+
+- **`all_experiments_plot.png`**: Visualizes the core hypothesis by plotting the marginal sampling bias against the model dimension.
+- **`acceptance_rates_plot.png`**: Shows the Metropolis-Adjusted Langevin Algorithm (MALA) acceptance rates, useful for diagnostics.
+- **`raw_data.jld2`**: A JLD2 file containing the complete, unprocessed data from all experimental runs for further analysis.
