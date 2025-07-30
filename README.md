@@ -1,5 +1,7 @@
 # Experimental Investigation of Bias Delocalization in Unadjusted Langevin Sampling
 
+Yuliang Michael Kang, yk2854@nyu.edu
+
 [![Julia 1.6+](https://img.shields.io/badge/Julia-1.6%2B-blue.svg)](https://julialang.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -34,9 +36,9 @@ You can run either of the two main experiment scripts from your terminal. Result
   julia LangevinBiasExperiments_a.jl
   ```
 
-- **To test relaxations of the delocalization conditions:**
+- **To test relaxations of product measures - a stationary distribution governed by potential with strictly diagonal dominant Hessians:**
   ```bash
-  julia LangevinBiasExperiments_x.jl
+  julia diagonal_dominance.jl
   ```
 
 ---
@@ -48,12 +50,11 @@ The repository is organized as follows:
 ```
 .
 ├── LangevinBiasExperiments_a.jl  # Main script for theory validation experiments.
-├── LangevinBiasExperiments_x.jl  # Script for exploring relaxed conditions.
+├── diagonal_dominance.jl  # Script for exploring relaxed conditions.
 ├── README.md                     # You are here!
 └── results/
-    ├── all_experiments_plot.png  # Output: Plot of marginal bias vs. dimension.
-    ├── acceptance_rates_plot.png # Output: Plot of MALA acceptance rates vs. dimension.
-    └── raw_data.jld2             # Output: Binary file with all raw experiment data.
+    ├── standard
+    ├── diag_dominant
 ```
 
 ---
@@ -62,6 +63,16 @@ The repository is organized as follows:
 
 Upon successful execution, the `results/` directory will contain:
 
-- **`all_experiments_plot.png`**: Marginal sampling bias against the model dimension.
-- **`acceptance_rates_plot.png`**: Metropolis-Adjusted Langevin Algorithm (MALA) acceptance rates
-- **`raw_data.jld2`**: Unprocessed data from all experimental runs
+- **`bias_scaling_plot_step-size.png`**: Marginal sampling bias against the model dimension.
+- **`acceptance_rates_plot_step-size.png`**: Metropolis-Adjusted Langevin Algorithm (MALA) acceptance rates.
+- **`iat_scaling_plot_step-size.png`**: IAT against the model dimension.
+- **`raw_data.jld2`**: Unprocessed data from all experimental runs.
+
+
+## Results Preview:
+
+<p align="center">
+<img src="static/bias_scaling_plot_h0.001.png" alt="Marginal sampling bias against the model dimension" width="32%">
+<img src="static/acceptance_rates_plot_h0.001.png" alt="MALA acceptance rates against the model dimension" width="32%">
+<img src="static/iat_scaling_plot_h0.001.png" alt="IAT against the model dimension" width="32%">
+</p>
